@@ -13,9 +13,10 @@ import type { ProcessedKline } from '../types/binance';
 interface PriceChartProps {
   data: ProcessedKline[];
   isLoading: boolean;
+  title: string;
 }
 
-const PriceChartComponent: React.FC<PriceChartProps> = ({ data, isLoading }) => {
+const PriceChartComponent: React.FC<PriceChartProps> = ({ data, isLoading, title }) => {
   // Memoize processed data to avoid recalculations on every render
   const { chartData, minPrice, maxPrice, isProfitGlobal, lastPrice, firstPrice } = useMemo(() => {
     if (data.length === 0) return { chartData: [], minPrice: 0, maxPrice: 0, isProfitGlobal: false, lastPrice: 0, firstPrice: 0 };
@@ -85,7 +86,7 @@ const PriceChartComponent: React.FC<PriceChartProps> = ({ data, isLoading }) => 
   return (
     <div className="h-[400px] w-full bg-slate-900 p-4 rounded-xl shadow-lg border border-slate-800 relative">
       <h2 className="text-slate-400 text-sm font-semibold mb-4 uppercase tracking-wider flex justify-between">
-        <span>BTC/USDT Market Price</span>
+        <span>{title} Market Price</span>
         <span className={isProfitGlobal ? 'text-emerald-500' : 'text-red-500 font-mono'}>
           {isProfitGlobal ? '+' : ''}{((lastPrice - firstPrice) / firstPrice * 100).toFixed(2)}% (Period)
         </span>

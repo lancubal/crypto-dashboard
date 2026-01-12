@@ -12,6 +12,15 @@ export const useBinanceData = (symbol: string = 'btcusdt', interval: Interval = 
   const tradesBuffer = useRef<ProcessedTrade[]>([]);
   const lastProcessedTradeId = useRef<number>(0);
 
+  // Reset state when symbol or interval changes
+  useEffect(() => {
+    setKlines([]);
+    setTrades([]);
+    tradesBuffer.current = [];
+    lastProcessedTradeId.current = 0;
+    setIsConnected(false);
+  }, [symbol, interval]);
+
   // 1. Fetch Historical Data
   useEffect(() => {
     const fetchHistory = async () => {
@@ -21,26 +30,36 @@ export const useBinanceData = (symbol: string = 'btcusdt', interval: Interval = 
           `https://api.binance.com/api/v3/klines?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=100`
         );
         const data = await response.json();
-        const formattedKlines: ProcessedKline[] = data.map((k: any) => ({
-          time: k[0],
-          open: parseFloat(k[1]),
-          high: parseFloat(k[2]),
-          low: parseFloat(k[3]),
-          close: parseFloat(k[4]),
-          volume: parseFloat(k[5]),
-        }));
-        setKlines(formattedKlines);
+        
+        // Check if data is array (valid response)
+        if (Array.isArray(data)) {
+            const formattedKlines: ProcessedKline[] = data.map((k: any) => ({
+              time: k[0],
+              open: parseFloat(k[1]),
+              high: parseFloat(k[2]),
+              low: parseFloat(k[3]),
+              close: parseFloat(k[4]),
+              volume: parseFloat(k[5]),
+            }));
+            setKlines(formattedKlines);
+        } else {
+            console.error("Binance API returned unexpected data:", data);
+        }
       } catch (error) {
         console.error("Failed to fetch history:", error);
       } finally {
         setIsLoadingHistory(false);
       }
     };
-    fetchHistory();
+    
+    // Only fetch if symbol is valid
+    if (symbol) fetchHistory();
   }, [symbol, interval]);
 
   // 2. Real-time Updates
   useEffect(() => {
+    if (!symbol) return;
+
     const streams = [
       `${symbol.toLowerCase()}@kline_${interval}`,
       `${symbol.toLowerCase()}@aggTrade`
@@ -62,10 +81,14 @@ export const useBinanceData = (symbol: string = 'btcusdt', interval: Interval = 
           return [...newTrades, ...prev].slice(0, 50);
         });
       }
-    }, 250); // Slightly slower updates (250ms) for better reading
+    }, 250); 
 
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);
+      
+      // Safety check: ensure message belongs to current stream/symbol if possible,
+      // though WebSocket connection is exclusive per effect.
+      
       const stream = message.stream;
       const data = message.data;
 
@@ -82,11 +105,13 @@ export const useBinanceData = (symbol: string = 'btcusdt', interval: Interval = 
         };
 
         setKlines(prev => {
-          const last = prev[prev.length - 1];
-          if (last && last.time === newKline.time) {
-            return [...prev.slice(0, -1), newKline];
-          }
-          return [...prev.slice(1), newKline];
+            if (prev.length === 0) return [newKline];
+            
+            const last = prev[prev.length - 1];
+            if (last && last.time === newKline.time) {
+                return [...prev.slice(0, -1), newKline];
+            }
+            return [...prev.slice(1), newKline];
         });
       }
 
@@ -103,21 +128,16 @@ export const useBinanceData = (symbol: string = 'btcusdt', interval: Interval = 
           isBuyerMaker: data.m,
         };
         
-        // Check LAST trade in buffer OR first trade in current state (if buffer empty)
-        // to see if we can merge.
         const lastInBuffer = tradesBuffer.current[0];
         
-        // Logic: if same price and same side (buy/sell), merge quantity
         if (lastInBuffer && 
             lastInBuffer.price === newTrade.price && 
             lastInBuffer.isBuyerMaker === newTrade.isBuyerMaker) {
             
-            // Mutate the last trade in buffer (add quantity) instead of pushing new one
             lastInBuffer.quantity += newTrade.quantity;
-            lastInBuffer.time = newTrade.time; // Update time to latest
-            lastInBuffer.id = newTrade.id; // Update ID
+            lastInBuffer.time = newTrade.time;
+            lastInBuffer.id = newTrade.id;
         } else {
-            // New distinct trade
             tradesBuffer.current.unshift(newTrade);
         }
         
@@ -128,6 +148,8 @@ export const useBinanceData = (symbol: string = 'btcusdt', interval: Interval = 
     return () => {
       socket.close();
       flushTrades.cancel();
+      // Don't clear state here, let the next effect run handle it via the separate reset effect
+      // to avoid flashing empty state if not needed, but in this case we want clean slate.
     };
   }, [symbol, interval]);
 
