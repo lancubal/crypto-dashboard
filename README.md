@@ -1,53 +1,54 @@
 # ⚡ CryptoStream Pro Dashboard
 
-Un dashboard financiero de alto rendimiento en tiempo real construido con React, TypeScript y WebSockets de Binance. Diseñado para manejar flujos de datos intensivos sin sacrificar la fluidez de la interfaz.
+A high-performance real-time financial dashboard built with **React**, **TypeScript**, and **Binance WebSockets**. Designed to handle intensive data streams (50+ events/sec) without sacrificing UI fluidity.
 
-![Dashboard Preview](https://via.placeholder.com/800x450?text=CryptoStream+Pro+Dashboard)
+## 🚀 Key Features
 
-## 🚀 Características Clave
+*   **True Real-Time:** Direct connection to Binance WebSockets (`aggTrade` and `kline`) for updates with < 50ms latency.
+*   **High Performance:**
+    *   **Smart Throttling:** Data buffering using `useRef` to decouple data ingestion from React rendering cycles.
+    *   **Virtualization:** Infinite scrolling for trade history using `react-window` (zero lag with thousands of rows).
+    *   **Visual Noise Filtering:** Aggressive aggregation logic to merge identical consecutive trades, reducing UI spam.
+    *   **Efficient Rendering:** Optimized charts with `recharts` and aggressive memoization (`React.memo`) to minimize repaints.
+*   **Hybrid Data Architecture:** Dual system that fetches historical data via REST API (initial hydration) and seamlessly switches to WebSocket streaming.
+*   **Multi-Asset Support:** Instant switching between top crypto assets (BTC, ETH, SOL, XRP, etc.) and commodities (PAXG/Gold).
+*   **Dynamic Visuals:** Charts feature real-time color changes (Green/Red) based on segment trends and period performance.
 
-*   **Tiempo Real Real:** Conexión directa a los WebSockets de Binance (`aggTrade` y `kline`) para actualizaciones con latencia < 50ms.
-*   **Alto Rendimiento:**
-    *   **Throttling Inteligente:** Buffering de datos usando `useRef` para desacoplar la ingesta de datos del renderizado de React.
-    *   **Virtualización:** Renderizado de listas infinitas de trades con `react-window` (0 lag con miles de items).
-    *   **Renderizado Eficiente:** Gráficos optimizados con `recharts` y memoización agresiva (`React.memo`) para minimizar repintados.
-*   **Datos Híbridos:** Sistema dual que carga historial vía API REST y continúa actualizando vía WebSocket sin cortes.
-*   **Multi-Intervalo:** Soporte para marcos de tiempo de 1m, 15m, 1h, 4h y 1d.
-
-## 🛠️ Stack Tecnológico
+## 🛠️ Tech Stack
 
 *   **Frontend:** [React 19](https://react.dev/) + [Vite](https://vitejs.dev/) + [TypeScript](https://www.typescriptlang.org/)
-*   **Estilos:** [Tailwind CSS v4](https://tailwindcss.com/)
-*   **Gráficos:** [Recharts](https://recharts.org/)
-*   **Virtualización:** [react-window](https://github.com/bvaughn/react-window)
-*   **Utilidades:** `lodash` (tbd), `clsx`, `lucide-react`.
+*   **Styling:** [Tailwind CSS v4](https://tailwindcss.com/)
+*   **Charting:** [Recharts](https://recharts.org/)
+*   **Virtualization:** [react-window](https://github.com/bvaughn/react-window)
+*   **Icons:** `lucide-react`
 
-## 📦 Instalación y Ejecución
+## 📦 Installation & Setup
 
-1.  **Clonar el repositorio:**
+1.  **Clone the repository:**
     ```bash
-    git clone <url-del-repo>
+    git clone https://github.com/your-username/crypto-dashboard.git
     cd crypto-dashboard
     ```
 
-2.  **Instalar dependencias:**
+2.  **Install dependencies:**
     ```bash
     npm install
     ```
 
-3.  **Iniciar servidor de desarrollo:**
+3.  **Start development server:**
     ```bash
     npm run dev
     ```
 
-## 🏗️ Arquitectura de Datos
+## 🏗️ Data Architecture
 
-El hook `useBinanceData` implementa un patrón de "hidratación + stream":
+The `useBinanceData` hook implements a "Hydration + Stream" pattern:
 
-1.  **Fase Fetch:** Pide las últimas 100 velas a la API REST `/api/v3/klines`.
-2.  **Fase Socket:** Se suscribe a `wss://stream.binance.com:9443/ws/...`.
-3.  **Merge:** Las actualizaciones del socket reemplazan la última vela en tiempo real si el timestamp coincide, o añaden una nueva si el intervalo ha cerrado.
+1.  **Fetch Phase:** Requests the last 100 candles via Binance REST API `/api/v3/klines` to populate the chart immediately.
+2.  **Socket Phase:** Subscribes to `wss://stream.binance.com:9443/ws/...` for live updates.
+3.  **Merge Logic:** WebSocket updates replace the latest candle in real-time (if timestamps match) or append a new candle when the interval closes.
+4.  **Trade Aggregation:** High-frequency trades are buffered and aggregated (by price/side) every 250ms to provide a readable, non-flickering history.
 
-## 📝 Licencia
+## 📝 License
 
 MIT
