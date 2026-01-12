@@ -2,6 +2,10 @@
 
 A high-performance real-time financial dashboard built with **React**, **TypeScript**, and **Binance WebSockets**. Designed to handle intensive data streams (50+ events/sec) without sacrificing UI fluidity.
 
+<p align="center">
+  <img src="public/screenshots/dashboard.png" alt="CryptoStream Pro Dashboard Preview" width="100%">
+</p>
+
 ## 🚀 Key Features
 
 *   **True Real-Time:** Direct connection to Binance WebSockets (`aggTrade` and `kline`) for updates with < 50ms latency.
